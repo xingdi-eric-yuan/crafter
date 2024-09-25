@@ -274,9 +274,9 @@ class Cow(Object):
   def update(self):
     if self.health <= 0:
       self.world.remove(self)
-    if self.random.uniform() < 0.5:
-      direction = self.random_dir()
-      self.move(direction)
+    # if self.random.uniform() < 0.5:
+    #   direction = self.random_dir()
+    #   self.move(direction)
 
 
 class Zombie(Object):
@@ -295,10 +295,10 @@ class Zombie(Object):
     if self.health <= 0:
       self.world.remove(self)
     dist = self.distance(self.player)
-    if dist <= 8 and self.random.uniform() < 0.9:
-      self.move(self.toward(self.player, self.random.uniform() < 0.8))
-    else:
-      self.move(self.random_dir())
+    # if dist <= 8 and self.random.uniform() < 0.9:
+    #   self.move(self.toward(self.player, self.random.uniform() < 0.8))
+    # else:
+    #   self.move(self.random_dir())
     dist = self.distance(self.player)
     if dist <= 1:
       if self.cooldown:
@@ -328,6 +328,7 @@ class Skeleton(Object):
     if self.health <= 0:
       self.world.remove(self)
     self.reload = max(0, self.reload - 1)
+    return
     dist = self.distance(self.player.pos)
     if dist <= 3:
       moved = self.move(-self.toward(self.player, self.random.uniform() < 0.6))
