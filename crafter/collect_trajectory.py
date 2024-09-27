@@ -170,6 +170,7 @@ def main():
     with open(output_file, "w") as f:
         for line in collected_trajectory:
             f.write(json.dumps(line) + "\n")
+    print(f"Trajectory saved to {output_file}")
 
 
 if __name__ == '__main__':

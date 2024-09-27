@@ -1,12 +1,13 @@
 ## Deterministic Crafter
 Modified from Danijar Hafner's env, making it deterministic. 
 
-### play
+### Collect trajectory data
 ```sh
 pip install --upgrade .  # Install Crafter
 pip install pygame   # Needed for human interface
-python3 crafter.run_gui      # Start the game
+python3 crafter.collect_trajectory      # Start the game
 ```
+A `data` folder will be created, after every game, a trajectory file with random name will be saved into that folder. 
 
 <details>
 <summary>Keyboard mapping (click to expand)</summary>
