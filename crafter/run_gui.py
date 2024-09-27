@@ -109,9 +109,9 @@ def main():
 
     # Environment step.
     obs, reward, done, _ = env.step(env.action_names.index(action))
-    # import pdb; pdb.set_trace()
     print("====================================")
-    print(obs[1])
+    print(obs[1])  # text matrix
+    print(obs[2])  # inventory
     duration += 1
 
     # Achievements.
