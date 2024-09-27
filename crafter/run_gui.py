@@ -15,7 +15,7 @@ def main():
   boolean = lambda x: bool(['False', 'True'].index(x))
   parser = argparse.ArgumentParser()
   parser.add_argument('--seed', type=int, default=43)
-  parser.add_argument('--area', nargs=2, type=int, default=(64, 64))
+  parser.add_argument('--area', nargs=2, type=int, default=(32, 32))
   parser.add_argument('--view', type=int, nargs=2, default=(9, 9))
   parser.add_argument('--length', type=int, default=None)
   parser.add_argument('--health', type=int, default=9)
@@ -76,7 +76,7 @@ def main():
   while running:
 
     # Rendering.
-    image = env.render(size)
+    image = env.render(size)[0]
     if size != args.window:
       image = Image.fromarray(image)
       image = image.resize(args.window, resample=Image.NEAREST)
@@ -108,7 +108,10 @@ def main():
           action = 'noop'
 
     # Environment step.
-    _, reward, done, _ = env.step(env.action_names.index(action))
+    obs, reward, done, _ = env.step(env.action_names.index(action))
+    # import pdb; pdb.set_trace()
+    print("====================================")
+    print(obs[1])
     duration += 1
 
     # Achievements.

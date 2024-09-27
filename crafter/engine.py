@@ -166,17 +166,26 @@ class LocalView:
     self._unit = np.array(unit)
     self._center = np.array(player.pos)
     canvas = np.zeros(tuple(self._grid * unit) + (3,), np.uint8) + 127
+
+    # Changes for storing the text matrix
+    # Set the default texture for the text matrix
+    text_matrix = [['grass' for _ in range(7)] for _ in range(9)]
+
     for x in range(self._grid[0]):
       for y in range(self._grid[1]):
         pos = self._center + np.array([x, y]) - self._offset
         if not _inside((0, 0), pos, self._area):
           continue
         texture = self._textures.get(self._world[pos][0], unit)
+        # Changes for storing the text matrix
+        text_matrix[x][y] = self._world[pos][0]
         _draw(canvas, np.array([x, y]) * unit, texture)
     for obj in self._world.objects:
       pos = obj.pos - self._center + self._offset
       if not _inside((0, 0), pos, self._grid):
         continue
+      # Changes for storing the text matrix
+      text_matrix[pos[0]][pos[1]] = obj.texture + "_on_" + text_matrix[pos[0]][pos[1]]
       texture = self._textures.get(obj.texture, unit)
       _draw_alpha(canvas, pos * unit, texture)
     canvas = self._light(canvas, self._world.daylight)
@@ -184,7 +193,9 @@ class LocalView:
       canvas = self._sleep(canvas)
     # if player.health < 1:
     #   canvas = self._tint(canvas, (128, 0, 0), 0.6)
-    return canvas
+    
+    # Return the transposed text matrix
+    return canvas, np.transpose(text_matrix)
 
   def _light(self, canvas, daylight):
     night = canvas
