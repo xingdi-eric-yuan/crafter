@@ -24,7 +24,7 @@ def main():
   parser.add_argument('--record', type=str, default=None)
   parser.add_argument('--fps', type=int, default=5)
   parser.add_argument('--wait', type=boolean, default=False)
-  parser.add_argument('--death', type=str, default='reset', choices=[
+  parser.add_argument('--death', type=str, default='quit', choices=[
       'continue', 'reset', 'quit'])
   args = parser.parse_args()
 
@@ -112,6 +112,7 @@ def main():
     print("====================================")
     print(obs[1])  # text matrix
     print(obs[2])  # inventory
+    print(action)
     duration += 1
 
     # Achievements.

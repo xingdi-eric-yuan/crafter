@@ -129,6 +129,8 @@ class Env(BaseClass):
     (x, y), (w, h) = border, view.shape[:2]
     canvas[x: x + w, y: y + h] = view
     # Changes for storing the text matrix
+    # converting text_matrix from numpy array to list of list
+    text_matrix = text_matrix.tolist()
     return canvas.transpose((1, 0, 2)), text_matrix, self._player.inventory
 
   def _obs(self):
