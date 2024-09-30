@@ -19,7 +19,7 @@ import crafter
 def main():
     boolean = lambda x: bool(['False', 'True'].index(x))
     parser = argparse.ArgumentParser()
-    parser.add_argument('--seed', type=int, default=43)
+    parser.add_argument('--seed', type=int, default=None)
     parser.add_argument('--area', nargs=2, type=int, default=(64, 64))
     parser.add_argument('--view', type=int, nargs=2, default=(9, 9))
     parser.add_argument('--length', type=int, default=None)
@@ -64,17 +64,19 @@ def main():
     size[0] = size[0] or args.window[0]
     size[1] = size[1] or args.window[1]
 
-    # create the data folder
-    os.makedirs("data", exist_ok=True)
-    # random uuid for this trajectory
-    _uuid = str(uuid.uuid4())
-    output_file = pjoin("data", f"trajectory_{_uuid}.jsonl")
-    collected_trajectory = []
-
     env = crafter.Env(
             area=args.area, view=args.view, length=args.length, seed=args.seed)
     env = crafter.Recorder(env, args.record)
     init_obs = env.reset()
+
+    # create the data folder
+    _seed = env._seed
+    os.makedirs("data", exist_ok=True)
+    # random uuid for this trajectory
+    _uuid = str(uuid.uuid4())
+    output_file = pjoin("data", f"trajectory_{_uuid}_seed_{_seed}.jsonl")
+    collected_trajectory = []
+
     collected_trajectory.append({"s_t": [copy.copy(init_obs[1]), copy.copy(init_obs[2])]})
     achievements = set()
     duration = 0
