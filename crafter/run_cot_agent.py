@@ -9,19 +9,13 @@ MAX_TRY = 20
 
 class Actor:
 
-    _available_actions = ['idle', 'move_west', 'move_east', 'move_north', 'move_south', 'sleep', \
-                         'place_stone', 'place_table', 'place_furnace', 'place_plant', 'make_wood_pickaxe', \
-                         'make_stone_pickaxe', 'make_iron_pickaxe', 'make_wood_sword', 'make_stone_sword', \
-                         'make_iron_sword', 'collect_coal', 'collect_diamond', 'collect_drink', \
-                         'collect_iron', 'collect_sapling', 'collect_stone', 'collect_wood', \
-                         'defeat_skeleton', 'defeat_zombie', 'eat_cow', 'eat_plant']
-    action_mapping = {
+    _available_actions = {
         'idle': 0,
-        'move_west': 1,
-        'move_east': 2,
-        'move_north': 3,
-        'move_south': 4,
-        'do': 5,
+        'move_left': 1,
+        'move_right': 2,
+        'move_up': 3,
+        'move_down': 4,
+        'do (mine, collect, attack)': 5,
         'sleep': 6,
         'place_stone': 7,
         'place_table': 8,
@@ -55,12 +49,10 @@ class Actor:
         )
         
     def map_action(self, text_action):
-        if 'face' in text_action:
-            text_action = text_action.replace('face', 'move')
-        for action, number in self.action_mapping.items():
-            if action in text_action:
-                return action, number
-        return 'do(mine, collect, attack)', 5
+        if text_action in self._available_actions:
+            return self._available_actions[text_action]
+        else:
+            return 5
 
     def reset(self):
         self._time_step = 0
@@ -72,8 +64,8 @@ class Actor:
         return obs
 
     def step(self, text_action):
-        _, mapped_action = self.map_action(text_action)   
-        obs, reward, done, _ = self._env.step(mapped_action)
+        action_id = self.map_action(text_action)   
+        obs, reward, done, _ = self._env.step(action_id)
         self._total_reward += reward
         self.transition_trajectory[-1]["a_t"] = text_action
         self.transition_trajectory[-1]["r_t"] = reward
@@ -120,36 +112,43 @@ class Actor:
 
     def select_action(self):
         messages = []
-        messages.append({"role": "system", "content" : "You are a helpful assistant. You are playing a 2-d grid-based game. Your task is to select the best action to complete the final goal based on the game state at every step. The game state has been translated into a grid of text for your convenience. Please provide your answer in JSON format."})
+        messages.append({"role": "system", "content" : "You are a helpful assistant. You are playing Crafter, a 2-d grid-world game. Your final goal is to survive and collect the diamond, but to achieve that, at every step, your task is to select the best action towards the final goal based on the current game state. The game state has been translated into a grid of text for your convenience. Please provide your answer in JSON format."})
 
-        action_format = """{
-            'top_3_actions_proposal': {'action_name_1': {'object_1_name': {'location': object 1's location, 'dynamic': object 1's dynamic}, ......}
-                                        'action_name_2': ......
-                                        'action_name_3': ......},
-            'top_3_actions_consequences': {'action_name_1': 'consequences', 'action_name_2': 'consequences', 'action_name_3': 'consequences'},
-            'chosen_action': 'action_name',
-            'justification': 'justification'
-        }"""
+        action_format = {
+            "top_3_actions_proposal": {"action_1": "action_1_rationale", 
+                                       "action_2": "action_2_rationale", 
+                                       "action_3": "action_3_rationale"},
+            'top_3_actions_consequences': {"action_1": "action_1_consequences", 
+                                           "action_2": "action_2_consequences",
+                                           "action_3": "action_3_consequences"},
+            "chosen_action": "action_name",
+            "justification": "justification"
+        }
+
+        game_info = f"""
+The game Crafter is a 2-d grid-world game where you play as a character who can move around, mine resources, craft tools, and place objects. The game world is a grid of size {self._map_size}x{self._map_size}, but the player can only observe their surroundings of size 9x7. The game state is represented by a grid of text where each cell contains information about the material at that location. The game state also provides the player's inventory, which includes information about the player's health, food, drink, energy level, as well as the tools and resources they have collected. The player's goal is to survive and collect the diamond, which is hidden somewhere in the game world. When the food, drink, or energy level reaches zero, the player will lose health. The player needs to find ways to replenish these resources to stay alive. The player can also craft tools to help them mine resources faster and survive longer. The game has a tech-tree where the player needs to craft lower-tier tools before they can craft higher-tier tools.
+"""
+
         prompt = f"""
-        Given the following details:
-        - Final game goal: survive and collect the diamond
-        - Current observation: {json.dumps(self.transition_trajectory[-1]["s_t"][0])}
-        - Current status: {json.dumps(self.transition_trajectory[-1]["s_t"][1])}
-        - Previous actions: {json.dumps([self.transition_trajectory[i]["a_t"] for i in range(len(self.transition_trajectory) - 1)][-3:])}
-        - Rewards received so far: {self._total_reward}
+Given the following information describing the current game state:
+- Current observation: {json.dumps(self.transition_trajectory[-1]["s_t"][0])}
+- Current status: {json.dumps(self.transition_trajectory[-1]["s_t"][1])}
+- Previous actions: {json.dumps([self.transition_trajectory[i]["a_t"] for i in range(len(self.transition_trajectory) - 1)][-3:])}
+- Rewards received so far: {self._total_reward}
 
-        You task is to:
-        - propose the top 3 actions to execute at next step based on the current observation and status.
-        - provide the rationale and detailed consequences of executing each action you propose.
-        - based on the consequence, select the best action to execute next.
-        - provide the justification for your choice.
+You task is to:
+- propose the top 3 actions to execute at next step based on the current observation and status.
+- provide the rationale and detailed consequences of executing each action you propose.
+- based on the consequence, select the best action to execute next.
+- provide the justification for your choice.
 
-        Note: You can only select actions from the available actions: {json.dumps(self._available_actions)}.
-        Note: Avoid unnecessary crafting and placement if the items are within reachable distance.
-        Note: You should craft as many different tools as soon as possible to increase the chance of reaching the final goal.
-        
-        Please format your response in the following format: {action_format}
-        """
+Note: You can only select actions from the available actions: {json.dumps(self._available_actions)}.
+Note: Avoid unnecessary crafting and placement if the items are within reachable distance.
+Note: You should craft as many different tools as soon as possible to increase the chance of reaching the final goal.
+
+Please format your response in the following format: \n{json.dumps(action_format, indent=4)}
+"""
+        messages.append({"role": "user", "content": game_info})
         messages.append({"role": "user", "content": prompt})
 
         retried_times = 0 
