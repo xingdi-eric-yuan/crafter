@@ -6,9 +6,9 @@ Modified from Danijar Hafner's env, making it deterministic.
 pip install --upgrade .  # Install Crafter
 pip install pygame   # Needed for human interface
 cp llm.cfg.template llm.cfg  # Then fill in llm.cfg your LLM endpoint info; don't worry, there's a git ignore
-python3 crafter.run_cot_agent  # Start the game
+python3 crafter.run_agent  # Start the game
 ```
-One can switch between a `plain` agent and a `cot` agent in `run_cot_agent.py`.
+One can switch between a `plain` agent and a `cot` agent in `run_agent.py`.
 
 ### Collect trajectory data
 ```sh
