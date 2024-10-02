@@ -37,11 +37,13 @@ class Actor:
 
     def __init__(self, 
                  initial_size=(600, 600), map_size=64, 
+                 step_budget=1000,
                  seed=0):
 
         self._map_size = map_size
         self._initial_size = initial_size
         self._seed = seed
+        self.step_budget = step_budget
         self.llm = LLM("gpt-4o")
         
         self._env = crafter.Env(seed=self._seed)
@@ -66,7 +68,7 @@ class Actor:
         self.transition_trajectory = []
         self._env.reset()
         obs = self._env.render()
-        self.transition_trajectory.append({"s_t": [copy.copy(obs[1]), copy.copy(obs[2])]})
+        self.transition_trajectory.append({"s_t": [copy.deepcopy(obs[1]), copy.deepcopy(obs[2])]})
         return obs
 
     def step(self, text_action):
@@ -75,30 +77,33 @@ class Actor:
         self._total_reward += reward
         self.transition_trajectory[-1]["a_t"] = text_action
         self.transition_trajectory[-1]["r_t"] = reward
-        self.transition_trajectory[-1]["s_t+1"] = [copy.copy(obs[1]), copy.copy(obs[2])]
+        self.transition_trajectory[-1]["cumulative_r_t"] = self._total_reward
+        self.transition_trajectory[-1]["s_t+1"] = [copy.deepcopy(obs[1]), copy.deepcopy(obs[2])]
         self.transition_trajectory[-1]["done"] = done
-        self.transition_trajectory.append({"s_t": [copy.copy(obs[1]), copy.copy(obs[2])]})
+        self.transition_trajectory.append({"s_t": [copy.deepcopy(obs[1]), copy.deepcopy(obs[2])]})
         return obs, reward, done
 
     def run(self):
 
         done = False
         obs = self.reset()
-        print('============================')
         print("game started...")
+        print('============================')
+        print('- state: \n', self.observation_layout(copy.deepcopy(obs[1])))
+        print('- inventory: \n', copy.deepcopy(obs[2]))
         while not done:
-            _, text_matrix, inventory = obs
+            if self._time_step >= self.step_budget:
+                break
             llm_response = self.act()
             text_action = llm_response["chosen_action"]
             obs, _, done = self.step(text_action)
-
-            self._time_step += 1
-            print("step:", self._time_step)
-            print('total reward:', self._total_reward)
-            print('state: \n', self.observation_layout(text_matrix))
-            print('inventory: \n', inventory)
-            print('action', text_action)
             print('============================')
+            print("- step:", self._time_step)
+            print('- action:', text_action)
+            print('- state: \n', self.observation_layout(copy.deepcopy(obs[1])))
+            print('- inventory: \n', copy.deepcopy(obs[2]))
+            print('- total reward:', self._total_reward)
+            self._time_step += 1
         print("game over...")
 
     def act(self):
@@ -116,7 +121,6 @@ class Actor:
     def select_action(self):
         messages = []
         messages.append({"role": "system", "content" : "You are a helpful assistant. You are playing a 2-d grid-based game. Your task is to select the best action to complete the final goal based on the game state at every step. The game state has been translated into a grid of text for your convenience. Please provide your answer in JSON format."})
-        
 
         action_format = """{
             'top_3_actions_proposal': {'action_name_1': {'object_1_name': {'location': object 1's location, 'dynamic': object 1's dynamic}, ......}
@@ -132,6 +136,7 @@ class Actor:
         - Current observation: {json.dumps(self.transition_trajectory[-1]["s_t"][0])}
         - Current status: {json.dumps(self.transition_trajectory[-1]["s_t"][1])}
         - Previous actions: {json.dumps([self.transition_trajectory[i]["a_t"] for i in range(len(self.transition_trajectory) - 1)][-3:])}
+        - Rewards received so far: {self._total_reward}
 
         You task is to:
         - propose the top 3 actions to execute at next step based on the current observation and status.
@@ -164,5 +169,5 @@ class Actor:
 
 
 if __name__ == '__main__':
-    actor = Actor()
+    actor = Actor(step_budget=1000)
     actor.run()
