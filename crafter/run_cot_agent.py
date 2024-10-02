@@ -1,10 +1,13 @@
 import os
 import datetime
 import copy
+import uuid
 import json
 import crafter
+from os.path import join as pjoin
 from llm_api import LLM
 MAX_TRY = 20
+HISTORY_SIZE = 5
 
 
 class Actor:
@@ -47,7 +50,12 @@ class Actor:
             save_episode=False,
             save_video=False,
         )
-        
+
+    def save_log(self):
+        with open(self.output_file_path, "w") as f:
+            for item in self.log:
+                f.write(json.dumps(item) + "\n")
+
     def map_action(self, text_action):
         if text_action in self._available_actions:
             return self._available_actions[text_action]
@@ -61,13 +69,22 @@ class Actor:
         self._env.reset()
         obs = self._env.render()
         self.transition_trajectory.append({"s_t": [copy.deepcopy(obs[1]), copy.deepcopy(obs[2])]})
+
+        # log
+        os.makedirs("log", exist_ok=True)
+        # random uuid for this run
+        _uuid = str(uuid.uuid4())
+        self.output_file_path = pjoin("log", f"{_uuid}_seed_{self._seed}.jsonl")
+        self.log = []
+
         return obs
 
-    def step(self, text_action):
+    def step(self, llm_response):
+        text_action = llm_response["chosen_action"]
         action_id = self.map_action(text_action)   
         obs, reward, done, _ = self._env.step(action_id)
         self._total_reward += reward
-        self.transition_trajectory[-1]["a_t"] = text_action
+        self.transition_trajectory[-1]["a_t"] = copy.deepcopy(llm_response)
         self.transition_trajectory[-1]["r_t"] = reward
         self.transition_trajectory[-1]["cumulative_r_t"] = self._total_reward
         self.transition_trajectory[-1]["s_t+1"] = [copy.deepcopy(obs[1]), copy.deepcopy(obs[2])]
@@ -87,15 +104,15 @@ class Actor:
             if self._time_step >= self.step_budget:
                 break
             llm_response = self.act()
-            text_action = llm_response["chosen_action"]
-            obs, _, done = self.step(text_action)
+            obs, _, done = self.step(llm_response)
             print('============================')
             print("- step:", self._time_step)
-            print('- action:', text_action)
+            print('- action:', llm_response["chosen_action"])
             print('- state: \n', self.observation_layout(copy.deepcopy(obs[1])))
             print('- inventory: \n', copy.deepcopy(obs[2]))
             print('- total reward:', self._total_reward)
             self._time_step += 1
+            self.log.append(copy.deepcopy(self.transition_trajectory[-2]))
         print("game over...")
 
     def act(self):
@@ -131,10 +148,14 @@ The game Crafter is a 2-d grid-world game where you play as a character who can 
 
         prompt = f"""
 Given the following information describing the current game state:
-- Current observation: {json.dumps(self.transition_trajectory[-1]["s_t"][0])}
-- Current status: {json.dumps(self.transition_trajectory[-1]["s_t"][1])}
-- Previous actions: {json.dumps([self.transition_trajectory[i]["a_t"] for i in range(len(self.transition_trajectory) - 1)][-3:])}
-- Rewards received so far: {self._total_reward}
+- Current observation: 
+    {json.dumps(self.transition_trajectory[-1]["s_t"][0])}
+- Current status: 
+    {json.dumps(self.transition_trajectory[-1]["s_t"][1])}
+- Previous actions and rationale: 
+    {json.dumps([self.transition_trajectory[i]["a_t"] for i in range(len(self.transition_trajectory) - 1)][-HISTORY_SIZE:])}
+- Rewards received so far: 
+    {self._total_reward}
 
 You task is to:
 - propose the top 3 actions to execute at next step based on the current observation and status.
@@ -169,4 +190,8 @@ Please format your response in the following format: \n{json.dumps(action_format
 
 if __name__ == '__main__':
     actor = Actor(step_budget=1000)
-    actor.run()
+    try:
+        actor.run()
+    except KeyboardInterrupt:
+        print("\nterminated by user, saving log...")
+        actor.save_log()
