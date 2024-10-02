@@ -54,8 +54,7 @@ class Actor:
 
     def save_log(self):
         with open(self.output_file_path, "w") as f:
-            for item in self.log:
-                f.write(json.dumps(item, indent=4) + "\n")
+            f.write(json.dumps({"seed": self._seed, "log": self.log}, indent=4))
 
     def map_action(self, text_action):
         if text_action in self._available_actions:
@@ -69,7 +68,7 @@ class Actor:
         self.transition_trajectory = []
         self._env.reset()
         obs = self._env.render()
-        self.transition_trajectory.append({"s_t": [copy.deepcopy(obs[1]), copy.deepcopy(obs[2])]})
+        self.transition_trajectory.append({"s_t": [copy.deepcopy(obs[1]), copy.deepcopy(obs[2]), copy.deepcopy(self._env._player._internal_counters)]})
 
         # log
         os.makedirs("log", exist_ok=True)
@@ -88,9 +87,9 @@ class Actor:
         self.transition_trajectory[-1]["a_t"] = copy.deepcopy(llm_response)
         self.transition_trajectory[-1]["r_t"] = reward
         self.transition_trajectory[-1]["cumulative_r_t"] = self._total_reward
-        self.transition_trajectory[-1]["s_t+1"] = [copy.deepcopy(obs[1]), copy.deepcopy(obs[2])]
+        self.transition_trajectory[-1]["s_t+1"] = [copy.deepcopy(obs[1]), copy.deepcopy(obs[2]), copy.deepcopy(self._env._player._internal_counters)]
         self.transition_trajectory[-1]["done"] = done
-        self.transition_trajectory.append({"s_t": [copy.deepcopy(obs[1]), copy.deepcopy(obs[2])]})
+        self.transition_trajectory.append({"s_t": [copy.deepcopy(obs[1]), copy.deepcopy(obs[2]), copy.deepcopy(self._env._player._internal_counters)]})
         return obs, reward, done
 
     def run(self):

@@ -80,6 +80,8 @@ class Player(Object):
     self._thirst = 0
     self._fatigue = 0
     self._recover = 0
+    self._internal_counters = {"hunger": 0, "thirst": 0, "fatigue": 0, "recover": 0,
+                               "hunger_limit": [0, 25], "thirst_limit": [0, 20], "fatigue_limit": [-10, 30], "recover_limit": [-15, 25]}
 
   @property
   def texture(self):
@@ -123,6 +125,10 @@ class Player(Object):
       self._make(action[len('make_'):])
     self._update_life_stats()
     self._degen_or_regen_health()
+    self._internal_counters["hunger"] = self._hunger
+    self._internal_counters["thirst"] = self._thirst
+    self._internal_counters["fatigue"] = self._fatigue
+    self._internal_counters["recover"] = self._recover
     for name, amount in self.inventory.items():
       maxmium = constants.items[name]['max']
       self.inventory[name] = max(0, min(amount, maxmium))
