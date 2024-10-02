@@ -8,6 +8,7 @@ pip install pygame   # Needed for human interface
 cp llm.cfg.template llm.cfg  # Then fill in llm.cfg your LLM endpoint info; don't worry, there's a git ignore
 python3 crafter.run_cot_agent  # Start the game
 ```
+TODO: provide in the prompt more info about the game, add history info. 
 
 ### Collect trajectory data
 ```sh
