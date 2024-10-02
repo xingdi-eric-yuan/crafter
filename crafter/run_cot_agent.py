@@ -34,12 +34,13 @@ class Actor:
 
     def __init__(self, 
                  initial_size=(600, 600), map_size=64, 
-                 step_budget=1000,
+                 step_budget=1000, agent_type="plain",
                  seed=0):
 
         self._map_size = map_size
         self._initial_size = initial_size
         self._seed = seed
+        self.agent_type = agent_type
         self.step_budget = step_budget
         self.llm = LLM("gpt-4o")
         
@@ -54,7 +55,7 @@ class Actor:
     def save_log(self):
         with open(self.output_file_path, "w") as f:
             for item in self.log:
-                f.write(json.dumps(item) + "\n")
+                f.write(json.dumps(item, indent=4) + "\n")
 
     def map_action(self, text_action):
         if text_action in self._available_actions:
@@ -131,22 +132,49 @@ class Actor:
         messages = []
         messages.append({"role": "system", "content" : "You are a helpful assistant. You are playing Crafter, a 2-d grid-world game. Your final goal is to survive and collect the diamond, but to achieve that, at every step, your task is to select the best action towards the final goal based on the current game state. The game state has been translated into a grid of text for your convenience. Please provide your answer in JSON format."})
 
-        action_format = {
-            "top_3_actions_proposal": {"action_1": "action_1_rationale", 
-                                       "action_2": "action_2_rationale", 
-                                       "action_3": "action_3_rationale"},
-            'top_3_actions_consequences': {"action_1": "action_1_consequences", 
-                                           "action_2": "action_2_consequences",
-                                           "action_3": "action_3_consequences"},
-            "chosen_action": "action_name",
-            "justification": "justification"
+        action_format_cot = {
+            "top_3_actions_proposal": {"action_1": "the action you propose", 
+                                       "action_2": "the action you propose", 
+                                       "action_3": "the action you propose"},
+            "top_3_actions_nationale": {"action_1": "why you propose this action", 
+                                        "action_2": "why you propose this action", 
+                                        "action_3": "why you propose this action"},
+            'top_3_actions_consequences': {"action_1": "what will happen if you execute this action", 
+                                           "action_2": "what will happen if you execute this action",
+                                           "action_3": "what will happen if you execute this action"},
+            "chosen_action": "the action you choose to execute",
+            "justification": "the reason why you choose this action from the top 3 actions"
+        }
+
+        action_format_plain = {
+            "chosen_action": "the action you choose to execute",
         }
 
         game_info = f"""
 The game Crafter is a 2-d grid-world game where you play as a character who can move around, mine resources, craft tools, and place objects. The game world is a grid of size {self._map_size}x{self._map_size}, but the player can only observe their surroundings of size 9x7. The game state is represented by a grid of text where each cell contains information about the material at that location. The game state also provides the player's inventory, which includes information about the player's health, food, drink, energy level, as well as the tools and resources they have collected. The player's goal is to survive and collect the diamond, which is hidden somewhere in the game world. When the food, drink, or energy level reaches zero, the player will lose health. The player needs to find ways to replenish these resources to stay alive. The player can also craft tools to help them mine resources faster and survive longer. The game has a tech-tree where the player needs to craft lower-tier tools before they can craft higher-tier tools.
 """
 
-        prompt = f"""
+        prompt_plain = f"""
+Given the following information describing the current game state:
+- Current observation: 
+    {json.dumps(self.transition_trajectory[-1]["s_t"][0])}
+- Current status: 
+    {json.dumps(self.transition_trajectory[-1]["s_t"][1])}
+- Previous actions: 
+    {json.dumps([self.transition_trajectory[i]["a_t"] for i in range(len(self.transition_trajectory) - 1)][-HISTORY_SIZE:])}
+- Rewards received so far: 
+    {self._total_reward}
+
+You task is to propose the best actions to execute at next step based on the current observation and status.
+
+Note: You can only select actions from the available actions: {json.dumps(self._available_actions)}.
+Note: Avoid unnecessary crafting and placement if the items are within reachable distance.
+Note: You should craft as many different tools as soon as possible to increase the chance of reaching the final goal.
+
+Please format your response in the following format: \n{json.dumps(action_format_plain, indent=4)}
+"""
+
+        prompt_cot = f"""
 Given the following information describing the current game state:
 - Current observation: 
     {json.dumps(self.transition_trajectory[-1]["s_t"][0])}
@@ -159,7 +187,8 @@ Given the following information describing the current game state:
 
 You task is to:
 - propose the top 3 actions to execute at next step based on the current observation and status.
-- provide the rationale and detailed consequences of executing each action you propose.
+- provide the rationale you think each action is a good choice.
+- predict the consequences of executing each action you propose.
 - based on the consequence, select the best action to execute next.
 - provide the justification for your choice.
 
@@ -167,9 +196,15 @@ Note: You can only select actions from the available actions: {json.dumps(self._
 Note: Avoid unnecessary crafting and placement if the items are within reachable distance.
 Note: You should craft as many different tools as soon as possible to increase the chance of reaching the final goal.
 
-Please format your response in the following format: \n{json.dumps(action_format, indent=4)}
+Please format your response in the following format: \n{json.dumps(action_format_cot, indent=4)}
 """
         messages.append({"role": "user", "content": game_info})
+        if self.agent_type == "plain":
+            prompt = prompt_plain
+        elif self.agent_type == "cot":
+            prompt = prompt_cot
+        else:
+            raise ValueError("Invalid agent type")
         messages.append({"role": "user", "content": prompt})
 
         retried_times = 0 
@@ -189,7 +224,7 @@ Please format your response in the following format: \n{json.dumps(action_format
 
 
 if __name__ == '__main__':
-    actor = Actor(step_budget=1000)
+    actor = Actor(step_budget=1000, agent_type="plain", seed=43)  # plain or cot
     try:
         actor.run()
     except KeyboardInterrupt:
