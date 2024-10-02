@@ -1,6 +1,14 @@
 ## Deterministic Crafter
 Modified from Danijar Hafner's env, making it deterministic. 
 
+### Simple LLM-based agent
+```sh
+pip install --upgrade .  # Install Crafter
+pip install pygame   # Needed for human interface
+cp llm.cfg.template llm.cfg  # Then fill in llm.cfg your LLM endpoint info; don't worry, there's a git ignore
+python3 crafter.run_cot_agent  # Start the game
+```
+
 ### Collect trajectory data
 ```sh
 pip install --upgrade .  # Install Crafter
