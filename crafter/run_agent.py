@@ -67,6 +67,8 @@ class Actor:
         self._total_reward = 0.0
         self.transition_trajectory = []
         self.action_counter = {}
+        for __action in self._available_actions.keys():
+            self.action_counter[__action] = {"success": 0, "fail": 0}
         self._env.reset()
         obs = self._env.render()
         self.transition_trajectory.append({"s_t": [copy.deepcopy(obs[1]), copy.deepcopy(obs[2]), copy.deepcopy(self._env._player._internal_counters)]})
@@ -99,8 +101,6 @@ class Actor:
                 self.transition_trajectory[-1]["s_t+1"][1]["drink"] >= self.transition_trajectory[-1]["s_t"][1]["drink"] or \
                 self.transition_trajectory[-1]["s_t+1"][1]["energy"] >= self.transition_trajectory[-1]["s_t"][1]["energy"]:
                 action_success = True
-        if text_action not in self.action_counter:
-            self.action_counter[text_action] = {"success": 0, "fail": 0}
         self.action_counter[text_action]["success" if action_success else "fail"] += 1
         self.transition_trajectory[-1]["action_counter"] = copy.deepcopy(self.action_counter)
         self.transition_trajectory.append({"s_t": [copy.deepcopy(obs[1]), copy.deepcopy(obs[2]), copy.deepcopy(self._env._player._internal_counters)]})

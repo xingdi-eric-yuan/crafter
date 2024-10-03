@@ -77,6 +77,8 @@ def main():
     output_file = pjoin("data", f"trajectory_{_uuid}_seed_{_seed}.jsonl")
     collected_trajectory = []
     action_counter = {}
+    for __action in keymap.values():
+        action_counter[__action] = {"success": 0, "fail": 0}
 
     collected_trajectory.append({"s_t": [copy.copy(init_obs[1]), copy.copy(init_obs[2]), copy.deepcopy(env._player._internal_counters)]})
     achievements = set()
@@ -143,8 +145,6 @@ def main():
                     collected_trajectory[-1]["s_t+1"][1]["drink"] >= collected_trajectory[-1]["s_t"][1]["drink"] or \
                     collected_trajectory[-1]["s_t+1"][1]["energy"] >= collected_trajectory[-1]["s_t"][1]["energy"]:
                     action_success = True
-            if action not in action_counter:
-                action_counter[action] = {"success": 0, "fail": 0}
             action_counter[action]["success" if action_success else "fail"] += 1
             collected_trajectory[-1]["action_counter"] = copy.deepcopy(action_counter)
             collected_trajectory.append({"s_t": [copy.copy(obs[1]), copy.copy(obs[2]), copy.deepcopy(env._player._internal_counters)]})
