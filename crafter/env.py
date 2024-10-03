@@ -112,6 +112,7 @@ class Env(BaseClass):
         'semantic': self._sem_view(),
         'player_pos': self._player.pos,
         'reward': reward,
+        'internal_counters': self._player._internal_counters.copy(),
     }
     if not self._reward:
       reward = 0.0

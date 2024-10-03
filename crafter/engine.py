@@ -185,7 +185,7 @@ class LocalView:
       if not _inside((0, 0), pos, self._grid):
         continue
       # Changes for storing the text matrix
-      text_matrix[pos[0]][pos[1]] = obj.texture + "_on_" + text_matrix[pos[0]][pos[1]]
+      text_matrix[pos[0]][pos[1]] = obj.texture + " (standing on " + text_matrix[pos[0]][pos[1]] + ")"
       texture = self._textures.get(obj.texture, unit)
       _draw_alpha(canvas, pos * unit, texture)
     canvas = self._light(canvas, self._world.daylight)
