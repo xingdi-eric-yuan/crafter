@@ -6,6 +6,7 @@ import json
 import crafter
 from os.path import join as pjoin
 from llm_api import LLM
+
 MAX_TRY = 20
 HISTORY_SIZE = 5
 
@@ -101,9 +102,11 @@ class Actor:
                 action_success = True
         if text_action not in self.action_counter:
             self.action_counter[text_action] = {"success": 0, "fail": 0}
+
         self.action_counter[text_action]["success" if action_success else "fail"] += 1
         self.transition_trajectory[-1]["action_counter"] = copy.deepcopy(self.action_counter)
         self.transition_trajectory.append({"s_t": [copy.deepcopy(obs[1]), copy.deepcopy(obs[2]), copy.deepcopy(self._env._player._internal_counters)]})
+        # print("Transition Trajectory: ", self.transition_trajectory)
         return obs, reward, done
 
     def run(self):
@@ -187,6 +190,32 @@ Note: You should craft as many different tools as soon as possible to increase t
 Please format your response in the following format: \n{json.dumps(action_format_plain, indent=4)}
 """
 
+        prompt_exploration = f"""
+Given the following information describing the current game state:
+- Current observation: 
+    {json.dumps(self.transition_trajectory[-1]["s_t"][0])}
+- Current status: 
+    {json.dumps(self.transition_trajectory[-1]["s_t"][1])}
+- Previous actions: 
+    {json.dumps([self.transition_trajectory[i]["a_t"] for i in range(len(self.transition_trajectory) - 1)][-HISTORY_SIZE:])}
+- Rewards received so far: 
+    {self._total_reward}
+- Past actions and their outcomes (ACTION COUNTER):
+    {json.dumps(self.action_counter)}
+
+Your task is to:
+- propose actions to execute at next step based on the current observation and status.
+- to explore the game as much as possible, and surviving by collecting resources and crafting tools.
+- condition on the past actions taken (ACTION COUNTER) and see if you are stuck on certain actions or need to explore others.
+- try to make the ACTION COUNTER more balanced by exploring more actions.
+
+Note: You can only select actions from the available actions: {json.dumps(self._available_actions)}.
+Note: Avoid unnecessary crafting and placement if the items are within reachable distance.
+Note: You should play the game in a way that allows you to explore as much of the game world as possible.
+
+Please format your response in the following format: \n{json.dumps(action_format_plain, indent=4)}
+"""
+
         prompt_cot = f"""
 Given the following information describing the current game state:
 - Current observation: 
@@ -211,11 +240,14 @@ Note: You should craft as many different tools as soon as possible to increase t
 
 Please format your response in the following format: \n{json.dumps(action_format_cot, indent=4)}
 """
+
         messages.append({"role": "user", "content": game_info})
         if self.agent_type == "plain":
             prompt = prompt_plain
         elif self.agent_type == "cot":
             prompt = prompt_cot
+        elif self.agent_type == "explorer":
+            prompt = prompt_exploration
         else:
             raise ValueError("Invalid agent type")
         messages.append({"role": "user", "content": prompt})
@@ -237,7 +269,7 @@ Please format your response in the following format: \n{json.dumps(action_format
 
 
 if __name__ == '__main__':
-    actor = Actor(step_budget=1000, agent_type="plain", seed=43)  # plain or cot
+    actor = Actor(step_budget=1000, agent_type="explorer", seed=43)  # plain or cot
     try:
         actor.run()
     except KeyboardInterrupt:

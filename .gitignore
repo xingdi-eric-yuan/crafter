@@ -7,6 +7,6 @@ __pycache__/
 /build
 .DS_Store
 /data
-./data/*
+crafter/data/*
 /log
 llm.cfg
