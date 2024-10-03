@@ -76,12 +76,14 @@ def main():
     _uuid = str(uuid.uuid4())
     output_file = pjoin("data", f"trajectory_{_uuid}_seed_{_seed}.jsonl")
     collected_trajectory = []
+    action_counter = {}
 
-    collected_trajectory.append({"s_t": [copy.copy(init_obs[1]), copy.copy(init_obs[2])]})
+    collected_trajectory.append({"s_t": [copy.copy(init_obs[1]), copy.copy(init_obs[2]), copy.deepcopy(env._player._internal_counters)]})
     achievements = set()
     duration = 0
     return_ = 0
     was_done = False
+    total_reward = 0
     print('Diamonds exist:', env._world.count('diamond'))
 
     pygame.init()
@@ -125,9 +127,27 @@ def main():
         # Environment step.
         obs, reward, done, _ = env.step(env.action_names.index(action))
         if action != "noop":
+            total_reward += reward
+            collected_trajectory[-1]["r_t"] = reward
+            collected_trajectory[-1]["cumulative_r_t"] = total_reward
             collected_trajectory[-1]["a_t"] = action
-            collected_trajectory[-1]["s_t+1"] = [copy.copy(obs[1]), copy.copy(obs[2])]
-            collected_trajectory.append({"s_t": [copy.copy(obs[1]), copy.copy(obs[2])]})
+            collected_trajectory[-1]["s_t+1"] = [copy.copy(obs[1]), copy.copy(obs[2]), copy.deepcopy(env._player._internal_counters)]
+            collected_trajectory[-1]["done"] = done
+
+            action_success = False
+            if collected_trajectory[-1]["s_t+1"][0] != collected_trajectory[-1]["s_t"][0]:
+                action_success = True
+            if collected_trajectory[-1]["s_t+1"][1] != collected_trajectory[-1]["s_t"][1]:
+                if collected_trajectory[-1]["s_t+1"][1]["health"] >= collected_trajectory[-1]["s_t"][1]["health"] or \
+                    collected_trajectory[-1]["s_t+1"][1]["food"] >= collected_trajectory[-1]["s_t"][1]["food"] or \
+                    collected_trajectory[-1]["s_t+1"][1]["drink"] >= collected_trajectory[-1]["s_t"][1]["drink"] or \
+                    collected_trajectory[-1]["s_t+1"][1]["energy"] >= collected_trajectory[-1]["s_t"][1]["energy"]:
+                    action_success = True
+            if action not in action_counter:
+                action_counter[action] = {"success": 0, "fail": 0}
+            action_counter[action]["success" if action_success else "fail"] += 1
+            collected_trajectory[-1]["action_counter"] = copy.deepcopy(action_counter)
+            collected_trajectory.append({"s_t": [copy.copy(obs[1]), copy.copy(obs[2]), copy.deepcopy(env._player._internal_counters)]})
             # print("====================================")
             # print(obs[1])    # text matrix
             # print(obs[2])    # inventory
@@ -170,8 +190,7 @@ def main():
     collected_trajectory[-1]["s_t+1"] = ["none", "none"]
     # write collected trajectory into json file
     with open(output_file, "w") as f:
-        for line in collected_trajectory:
-            f.write(json.dumps(line) + "\n")
+        f.write(json.dumps({"seed": _seed, "log": collected_trajectory}, indent=4))
     print(f"Trajectory saved to {output_file}")
 
 
