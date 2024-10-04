@@ -193,7 +193,7 @@ class Player(Object):
 
   def _do_object(self, obj):
     damage = max([
-        1,
+        20,
         self.inventory['wood_sword'] and 2,
         self.inventory['stone_sword'] and 3,
         self.inventory['iron_sword'] and 5,
