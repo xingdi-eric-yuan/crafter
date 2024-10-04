@@ -71,7 +71,7 @@ class Actor:
             self.action_counter[__action] = {"success": 0, "fail": 0}
         self._env.reset()
         obs = self._env.render()
-        self.transition_trajectory.append({"s_t": [copy.deepcopy(obs[1]), copy.deepcopy(obs[2]), copy.deepcopy(self._env._player._internal_counters)]})
+        self.transition_trajectory.append({"s_t": [copy.deepcopy(obs[1]), copy.deepcopy(obs[2]), copy.deepcopy(self._env._player._internal_counters), copy.copy(self._env._player.pos.tolist())]})
 
         # log
         os.makedirs("log", exist_ok=True)
@@ -90,7 +90,7 @@ class Actor:
         self.transition_trajectory[-1]["a_t"] = copy.deepcopy(llm_response)
         self.transition_trajectory[-1]["r_t"] = reward
         self.transition_trajectory[-1]["cumulative_r_t"] = self._total_reward
-        self.transition_trajectory[-1]["s_t+1"] = [copy.deepcopy(obs[1]), copy.deepcopy(obs[2]), copy.deepcopy(self._env._player._internal_counters)]
+        self.transition_trajectory[-1]["s_t+1"] = [copy.deepcopy(obs[1]), copy.deepcopy(obs[2]), copy.deepcopy(self._env._player._internal_counters), copy.copy(self._env._player.pos.tolist())]
         self.transition_trajectory[-1]["done"] = done
         action_success = False
         if self.transition_trajectory[-1]["s_t+1"][0] != self.transition_trajectory[-1]["s_t"][0]:
@@ -104,7 +104,7 @@ class Actor:
                     action_success = True
         self.action_counter[text_action]["success" if action_success else "fail"] += 1
         self.transition_trajectory[-1]["action_counter"] = copy.deepcopy(self.action_counter)
-        self.transition_trajectory.append({"s_t": [copy.deepcopy(obs[1]), copy.deepcopy(obs[2]), copy.deepcopy(self._env._player._internal_counters)]})
+        self.transition_trajectory.append({"s_t": [copy.deepcopy(obs[1]), copy.deepcopy(obs[2]), copy.deepcopy(self._env._player._internal_counters), copy.copy(self._env._player.pos.tolist())]})
         return obs, reward, done
 
     def run(self):

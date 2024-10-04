@@ -79,7 +79,7 @@ def main():
     for __action in keymap.values():
         action_counter[__action] = {"success": 0, "fail": 0}
 
-    collected_trajectory.append({"s_t": [copy.copy(init_obs[1]), copy.copy(init_obs[2]), copy.deepcopy(env._player._internal_counters), copy.copy(env._player.pos)]})
+    collected_trajectory.append({"s_t": [copy.copy(init_obs[1]), copy.copy(init_obs[2]), copy.deepcopy(env._player._internal_counters), copy.copy(env._player.pos.tolist())]})
     achievements = set()
     duration = 0
     return_ = 0
@@ -132,7 +132,7 @@ def main():
             collected_trajectory[-1]["r_t"] = reward
             collected_trajectory[-1]["cumulative_r_t"] = total_reward
             collected_trajectory[-1]["a_t"] = action
-            collected_trajectory[-1]["s_t+1"] = [copy.copy(obs[1]), copy.copy(obs[2]), copy.deepcopy(env._player._internal_counters), copy.copy(env._player.pos)]
+            collected_trajectory[-1]["s_t+1"] = [copy.copy(obs[1]), copy.copy(obs[2]), copy.deepcopy(env._player._internal_counters), copy.copy(env._player.pos.tolist())]
             collected_trajectory[-1]["done"] = done
 
             action_success = False
@@ -147,7 +147,7 @@ def main():
                         action_success = True
             action_counter[action]["success" if action_success else "fail"] += 1
             collected_trajectory[-1]["action_counter"] = copy.deepcopy(action_counter)
-            collected_trajectory.append({"s_t": [copy.copy(obs[1]), copy.copy(obs[2]), copy.deepcopy(env._player._internal_counters), copy.copy(env._player.pos)]})
+            collected_trajectory.append({"s_t": [copy.copy(obs[1]), copy.copy(obs[2]), copy.deepcopy(env._player._internal_counters), copy.copy(env._player.pos.tolist())]})
             # print("====================================")
             # print(obs[1])    # text matrix
             # print(obs[2])    # inventory
