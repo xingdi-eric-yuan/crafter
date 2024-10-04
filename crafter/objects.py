@@ -123,6 +123,7 @@ class Player(Object):
       self._place(action[len('place_'):], target, material)
     elif action.startswith('make_'):
       self._make(action[len('make_'):])
+    self.internal_status_change = False
     self._update_life_stats()
     self._degen_or_regen_health()
     self._internal_counters["hunger"] = self._hunger
@@ -141,10 +142,12 @@ class Player(Object):
     if self._hunger > 25:
       self._hunger = 0
       self.inventory['food'] -= 1
+      self.internal_status_change = True
     self._thirst += 0.5 if self.sleeping else 1
     if self._thirst > 20:
       self._thirst = 0
       self.inventory['drink'] -= 1
+      self.internal_status_change = True
     if self.sleeping:
       self._fatigue = min(self._fatigue - 1, 0)
     else:
@@ -152,9 +155,11 @@ class Player(Object):
     if self._fatigue < -10:
       self._fatigue = 0
       self.inventory['energy'] += 1
+      self.internal_status_change = True
     if self._fatigue > 30:
       self._fatigue = 0
       self.inventory['energy'] -= 1
+      self.internal_status_change = True
 
   def _degen_or_regen_health(self):
     necessities = (
@@ -168,9 +173,11 @@ class Player(Object):
     if self._recover > 25:
       self._recover = 0
       self.health += 1
+      self.internal_status_change = True
     if self._recover < -15:
       self._recover = 0
       self.health -= 1
+      self.internal_status_change = True
 
   def _wake_up_when_hurt(self):
     if self.health < self._last_health:

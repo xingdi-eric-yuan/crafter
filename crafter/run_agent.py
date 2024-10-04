@@ -96,11 +96,12 @@ class Actor:
         if self.transition_trajectory[-1]["s_t+1"][0] != self.transition_trajectory[-1]["s_t"][0]:
             action_success = True
         if self.transition_trajectory[-1]["s_t+1"][1] != self.transition_trajectory[-1]["s_t"][1]:
-            if self.transition_trajectory[-1]["s_t+1"][1]["health"] >= self.transition_trajectory[-1]["s_t"][1]["health"] or \
-                self.transition_trajectory[-1]["s_t+1"][1]["food"] >= self.transition_trajectory[-1]["s_t"][1]["food"] or \
-                self.transition_trajectory[-1]["s_t+1"][1]["drink"] >= self.transition_trajectory[-1]["s_t"][1]["drink"] or \
-                self.transition_trajectory[-1]["s_t+1"][1]["energy"] >= self.transition_trajectory[-1]["s_t"][1]["energy"]:
-                action_success = True
+            if self.transition_trajectory[-1]["s_t+1"][1]["health"] != self.transition_trajectory[-1]["s_t"][1]["health"] or \
+                self.transition_trajectory[-1]["s_t+1"][1]["food"] != self.transition_trajectory[-1]["s_t"][1]["food"] or \
+                self.transition_trajectory[-1]["s_t+1"][1]["drink"] != self.transition_trajectory[-1]["s_t"][1]["drink"] or \
+                self.transition_trajectory[-1]["s_t+1"][1]["energy"] != self.transition_trajectory[-1]["s_t"][1]["energy"]:
+                if self._env.player.internal_status_change is False:
+                    action_success = True
         self.action_counter[text_action]["success" if action_success else "fail"] += 1
         self.transition_trajectory[-1]["action_counter"] = copy.deepcopy(self.action_counter)
         self.transition_trajectory.append({"s_t": [copy.deepcopy(obs[1]), copy.deepcopy(obs[2]), copy.deepcopy(self._env._player._internal_counters)]})

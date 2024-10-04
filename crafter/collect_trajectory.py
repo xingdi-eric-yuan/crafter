@@ -140,11 +140,12 @@ def main():
             if collected_trajectory[-1]["s_t+1"][0] != collected_trajectory[-1]["s_t"][0]:
                 action_success = True
             if collected_trajectory[-1]["s_t+1"][1] != collected_trajectory[-1]["s_t"][1]:
-                if collected_trajectory[-1]["s_t+1"][1]["health"] >= collected_trajectory[-1]["s_t"][1]["health"] or \
-                    collected_trajectory[-1]["s_t+1"][1]["food"] >= collected_trajectory[-1]["s_t"][1]["food"] or \
-                    collected_trajectory[-1]["s_t+1"][1]["drink"] >= collected_trajectory[-1]["s_t"][1]["drink"] or \
-                    collected_trajectory[-1]["s_t+1"][1]["energy"] >= collected_trajectory[-1]["s_t"][1]["energy"]:
-                    action_success = True
+                if collected_trajectory[-1]["s_t+1"][1]["health"] != collected_trajectory[-1]["s_t"][1]["health"] or \
+                    collected_trajectory[-1]["s_t+1"][1]["food"] != collected_trajectory[-1]["s_t"][1]["food"] or \
+                    collected_trajectory[-1]["s_t+1"][1]["drink"] != collected_trajectory[-1]["s_t"][1]["drink"] or \
+                    collected_trajectory[-1]["s_t+1"][1]["energy"] != collected_trajectory[-1]["s_t"][1]["energy"]:
+                    if env.player.internal_status_change is False:
+                        action_success = True
             action_counter[action]["success" if action_success else "fail"] += 1
             collected_trajectory[-1]["action_counter"] = copy.deepcopy(action_counter)
             collected_trajectory.append({"s_t": [copy.copy(obs[1]), copy.copy(obs[2]), copy.deepcopy(env._player._internal_counters)]})
