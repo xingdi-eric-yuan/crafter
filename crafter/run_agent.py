@@ -100,7 +100,7 @@ class Actor:
                 self.transition_trajectory[-1]["s_t+1"][1]["food"] != self.transition_trajectory[-1]["s_t"][1]["food"] or \
                 self.transition_trajectory[-1]["s_t+1"][1]["drink"] != self.transition_trajectory[-1]["s_t"][1]["drink"] or \
                 self.transition_trajectory[-1]["s_t+1"][1]["energy"] != self.transition_trajectory[-1]["s_t"][1]["energy"]:
-                if self._env.player.internal_status_change is False:
+                if self._env._player.internal_status_change is False:
                     action_success = True
         self.action_counter[text_action]["success" if action_success else "fail"] += 1
         self.transition_trajectory[-1]["action_counter"] = copy.deepcopy(self.action_counter)
